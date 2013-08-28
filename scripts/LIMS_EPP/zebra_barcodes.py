@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 import sys
-
+from argparse import ArgumentParser
 
 def construct(*args, **kwargs):
     start = int(kwargs.get('start'))
@@ -28,36 +27,43 @@ def makeProjectBarcode(PID):
         print "^FN2^FD"+plateCode+"^FS" #this is the barcode
         print "^XZ"
 
-def getArgs():
-    from optparse import OptionParser
-    ''' Options '''
-    parser = OptionParser(
-        description="""Tool for constructing barcode labels for NGI Genomics Projects""",
-        usage='-s <start project ID> -e <end project id>',
-        version="%prog V0.01 sverker.lundin@scilifelab.se")
-    parser.add_option('-s', '--start', type=int,
-        help='the starting project ID (numeric, e.g. 123)')
-    parser.add_option('-e', '--end', type=int,
-        help='the last project ID (numerig, e.g. 234)')
-    return parser
+def makeContainerBarcode(plateid):
+    lines = []
+    lines.append("^XA") #start of label
+    lines.append("^DFFORMAT^FS") #download and store format, name of format, end of field data (FS = field stop)
+    lines.append("^LH0,0") # label home position (label home = LH)
+    lines.append("^FO360,20^AFN,60,20^FN1^FS") #AF = assign font F, field number 1 (FN1), print text at position field origin (FO) rel. to home
+    lines.append("^FO140,5^BCN,70,N,N^FN2^FS") #BC=barcode 128, field number 2, Normal orientation, height 70, no interpreation line. 
+    lines.append("^XZ") #end format
 
-def main():
-    parser = getArgs()
-    (options, args) = parser.parse_args()
-    if not (options.start):
-        print >> sys.stderr, 'Usage: %s %s' % \
-            (parser.get_prog_name(), parser.usage)
-        
-    if not (options.end):
-        options.end = options.start +1
-    if options.start >= options.end:
-        print >> sys.stderr, 'end value has to be > start value'
-        sys.exit()
-    try:
-        construct(start=options.start, end=options.end)
-    except KeyboardInterrupt:
-        print >> sys.stderr, 'Interupted!'
-        quit()
-   
+    lines.append("^XA") #start of label format
+    lines.append("^XFFORMAT^FS") #label home posision
+    lines.append("^FN1^FD"+plateid+"^FS") #this is readable
+    lines.append("^FN2^FD"+plateid+"^FS") #this is the barcode
+    lines.append("^XZ")
+    return lines
+    
+def getArgs():
+    description = ("Print barcodes on zebra barcode printer "
+                   "for NGI Genomics Projects.")
+    parser = ArgumentParser(description=description)
+    parser.add_argument('--plateid',
+                        help='The plate ID to print on the barcode.')
+    parser.add_argument('--print',
+                        help=('Print file on default or '
+                              'supplied printer using lp command.'))
+    parser.add_argument('--hostname',
+                        help='Hostname for lp CUPS server.')
+    parser.add_argument('--destination',
+                        help='Name of printer.')
+    return parser.parse_args()
+
+def main(args):
+    lines = []
+    if args.plateid is not None:
+        lines += makeContainerBarcode(args.plateid)
+    print '\n'.join(lines)
+
 if __name__ == '__main__':
-    main()
+    arguments = getArgs()
+    main(arguments)
