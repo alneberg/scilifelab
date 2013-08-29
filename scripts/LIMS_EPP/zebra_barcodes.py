@@ -2,6 +2,11 @@
 import sys
 from argparse import ArgumentParser
 import subprocess
+import logging
+from genologics.config import BASEURI,USERNAME,PASSWORD
+from genologics.lims import Lims
+from genologics.epp import EppLogger
+
 
 def construct(*args, **kwargs):
     start = int(kwargs.get('start'))
@@ -51,6 +56,8 @@ def getArgs():
     parser = ArgumentParser(description=description)
     parser.add_argument('--plateid',
                         help='The plate ID to print on the barcode.')
+    parser.add_argument('--log',
+                        help='File name to use as log file')
     parser.add_argument('--printout',action="store_true",
                         help=('Print file on default or '
                               'supplied printer using lp command.'))
@@ -62,12 +69,14 @@ def getArgs():
                         help='Number of printout copies')
     return parser.parse_args()
 
-def main(args):
+def main(args,epp_logger):
     lines = []
     if args.plateid is not None:
+        logging.info('Constructing container barcode.')
         lines += makeContainerBarcode(args.plateid, copies=args.copies)
-    if args.printout is None:
-        print '\n'.join(lines)
+    if not args.printout:
+        logging.info('Writing to stdout.')
+        epp_logger.saved_stdout.write('\n'.join(lines)+'\n')
     elif lines:
         lp_args = ["lp"]
         if args.hostname:
@@ -75,11 +84,22 @@ def main(args):
         if args.destination:
             lp_args += ["-d",args.destination]
         lp_args.append("-") # lp accepts stdin if '-' is given as filename
-        print lp_args
-        sp = subprocess.Popen(lp_args, stdin=subprocess.PIPE)
+        logging.info('Ready to call lp for printing.')
+        sp = subprocess.Popen(lp_args, 
+                              stdin=subprocess.PIPE, 
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE)
         sp.stdin.write(str('\n'.join(lines)))
+        logging.info('lp command is called for printing.')
+        stdout,stderr = sp.communicate() # Will wait for sp to finish
+        logging.info('lp stdout: {0}'.format(stdout))
+        logging.info('lp stderr: {0}'.format(stderr))
+        logging.info('lp command finished')
         sp.stdin.close()
 
 if __name__ == '__main__':
     arguments = getArgs()
-    main(arguments)
+    lims = Lims(BASEURI,USERNAME,PASSWORD)
+    lims.check_version()
+    with EppLogger(arguments.log,lims=lims,prepend=False) as epp_logger:
+        main(arguments,epp_logger)
