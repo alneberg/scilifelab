@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
-"""valitadion_of_LIMS_upgrade.py is a script to compare extraction output from lims stage 
+desc = """valitadion_of_LIMS_upgrade.py is a script to compare extraction output from lims stage 
 server and lims production server. The comparison is based on the objects created to build 
 documents in the projects database on status db. A recursive function compares all values 
 in the objects and any differing values or missing keys are logged in a validation log file.
 
 Maya Brandi, Science for Life Laboratory, Stockholm, Sweden.
-"""
-
-usage = """
 
 *****Recomended validation procedure:*****
 
@@ -41,13 +38,13 @@ file to find what is differing.
 import sys
 import os
 import codecs
-from optparse import OptionParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from scilifelab.db.statusDB_utils import *
 from helpers import *
 from pprint import pprint
 from genologics.lims import *
 from genologics.config import BASEURI, USERNAME, PASSWORD
-import objectsDB as DB
+#import objectsDB as DB
 from datetime import date
 import scilifelab.log
 lims = Lims(BASEURI, USERNAME, PASSWORD)
@@ -108,20 +105,22 @@ def  main(proj_name, all_projects, conf_tools_dev):
             comp_obj(proj_tools, proj_tools_dev)
 
 if __name__ == '__main__':
-    parser = OptionParser(usage=usage)
+    parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
 
-    parser.add_option("-p", "--project", dest="project_name", default=None,
-    help = "eg: M.Uhlen_13_01. Dont use with -a flagg.")
+    parser.add_argument("-p", "--project", dest="project_name", default=None,
+                        help = "eg: M.Uhlen_13_01. Dont use with -a flagg.")
 
-    parser.add_option("-a", "--all_projects", dest="all_projects", action="store_true", default=False,
-    help = "Check all projects on couchDB. Don't use with -f flagg.")
+    parser.add_argument("-a", "--all_projects", action="store_true",
+                      help = "Check all projects on couchDB. Don't use with -p flag.")
 
-    parser.add_option("-c", "--conf", dest="conf", 
-    default=os.path.join(os.environ['HOME'],'opt/scilifelab/scilifelab/lims_utils/post_process.yaml'),         
-    help = "Config file for tools-dev.  Default: ~/opt/scilifelab/scilifelab/lims_utils/post_process.yaml")
+    parser.add_argument("-c", "--conf", dest="conf", 
+                      default=os.path.join(os.environ['HOME'],
+                                           'opt/scilifelab/scilifelab/lims_utils/post_process.yaml'),         
+                      help = ("Config file for tools-dev.  "
+                              "Default: ~/opt/scilifelab/scilifelab/lims_utils/post_process.yaml"))
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    LOG = scilifelab.log.file_logger('LOG',options.conf ,'validate_LIMS_upgrade.log', 'log_dir_tools')
-    main(options.project_name, options.all_projects, options.conf)
+    LOG = scilifelab.log.file_logger('LOG', args.conf, 'validate_LIMS_upgrade.log', 'log_dir_tools')
+    main(args.project_name, args.all_projects, args.conf)
 
