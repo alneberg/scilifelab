@@ -52,31 +52,31 @@ from datetime import date
 import scilifelab.log
 lims = Lims(BASEURI, USERNAME, PASSWORD)
 
-def comp_obj(stage, prod):
-    """compares the two dictionaries obj and dbobj"""
-    LOG.info('project %s is being handeled' % stage['project_name'])
-    diff = recursive_comp(stage, prod)
-    LOG.info('tools and tools-dev are differing for proj %s: %s' % ( stage['project_name'],diff))
+def comp_obj(obj1, obj2, name1, name2):
+    """compares the two dictionaries obj1 and obj2. Using name1 and name2 in log."""
+    LOG.info('project {0} is being handled'.format(stage['project_name']))
+    diff = recursive_comp(obj1, obj2, name1, name2)
+    LOG.info('{0} and {1} are differing for proj {2}: {3}'.format(name1, name2, stage['project_name'], diff))
 
-def recursive_comp(stage, prod):
+def recursive_comp(obj1, obj2, name1, name2):
     diff = False
-    keys = list(set(stage.keys() + prod.keys()))
+    keys = list(set(obj1.keys() + obj2.keys()))
     for key in keys:
-        if not (stage.has_key(key)):
-            LOG.info('Key %s missing in tools to db object ' % key)
+        if key not in obj1:
+            LOG.info("Key {0} missing in {1} to db object ".format(key, name2))
             diff = True
-        elif not  prod.has_key(key):
-            LOG.info('Key %s missing in tools-dev to db object ' % key)
+        elif key not in obj2:
+            LOG.info('Key {0} missing in {1} to db object '.format(key, name2))
             diff = True
         else:
-            prod_val = prod[key]
-            stage_val = stage[key]
-            if (prod_val != stage_val):
+            val1 = obj1[key]
+            val2 = obj2[key]
+            if (val1 != val2):
                 diff = True
-                if (type(prod_val) is dict) and (type(stage_val) is dict):
-                    diff = diff and recursive_comp(stage_val, prod_val)
+                if (type(val1) is dict) and (type(val2) is dict):
+                    diff = (diff and recursive_comp(val1, val2))
                 else:
-                    LOG.info('Key %s differing: tools gives: %s. tools-dev gives %s. ' %( key,prod_val,stage_val))
+                    LOG.info('Key {0} differing: {1} gives: {2}. {3} gives {4}. '.format(key, name1, val1, name2, val2))
     return diff
 
 def  main(proj_name, all_projects, conf_tools_dev):
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--conf", dest="conf", 
                       default=os.path.join(os.environ['HOME'],
                                            'opt/scilifelab/scilifelab/lims_utils/post_process.yaml'),         
-                      help = ("Config file for tools-dev.  "
+                      help = ("Config file. "
                               "Default: ~/opt/scilifelab/scilifelab/lims_utils/post_process.yaml"))
 
     args = parser.parse_args()
