@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
-desc = """valitadion_of_LIMS_upgrade.py is a script to compare extraction output from lims stage 
-server and lims production server. The comparison is based on the objects created to build 
-documents in the projects database on status db. A recursive function compares all values 
-in the objects and any differing values or missing keys are logged in a validation log file.
+desc = """A script to compare extraction output from the lims, given two different
+executables of project_summary_upload_LIMS.py.
+
+Given the full path of independent executables (such as within two conda environments),
+the comparison is not limited to the actual script but also its dependencies. 
+
+The comparison is based on the objects created to build documents in the projects database 
+on StatusDB. A recursive function compares all values in the objects and any differing 
+values or missing keys are logged in a validation log file.
 
 Maya Brandi, Science for Life Laboratory, Stockholm, Sweden.
+Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden.
 
 *****Recomended validation procedure:*****
 
@@ -15,24 +21,21 @@ Test that the script is caching differences by changing something on the
 stage server, eg. the value of the sample udf "status_(manual)". for some 
 project J.Doe_00_00. Then run the script with the -p flagg:
 
-valitadion_of_LIMS_upgrade.py -p J.Doe_00_00
+validation_project_upload_script.py -p J.Doe_00_00 <script1_path> 
+       -name1 <script_name1> <script2_path> -name2 <script_name2>
 
 This should give the output:
 
-Lims stage and Lims production are differing for proj J.Doe_00_00: True
-Key status_(manual) differing: Lims production gives: Aborted. Lims stage gives In Progress.
+<script_name1> and <script_name2> are differing for proj J.Doe_00_00: True
+Key status_(manual) differing: <script_name2> gives: Aborted. <script_name1> gives In Progress.
 
-Running the validation:
-
-Run valitadion_of_LIMS_upgrade.py with the -a flagg and grep for "True" in 
-the logfile when the script is finished. It will take some hours to go through 
-all projects opened after jul 1
+Comparing all projects
+Using the -a flag instead of -p will run the comparison for all projects. 
+This could take quite some time.
 
 If you don't find anything when grepping for True in the log file, no differences 
-are found for any projects.
-
-If you get output when grepping for True, there are differences. Then read the log 
-file to find what is differing. 
+are found for any projects. If you get output when grepping for True, there are 
+differences. Then read the log file to find what is differing. 
 
 """
 import sys
