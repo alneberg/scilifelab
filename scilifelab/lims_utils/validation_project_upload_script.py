@@ -22,7 +22,7 @@ stage server, eg. the value of the sample udf "status_(manual)". for some
 project J.Doe_00_00. Then run the script with the -p flagg:
 
 validation_project_upload_script.py -p J.Doe_00_00 <script1_path> 
-       -name1 <script_name1> <script2_path> -name2 <script_name2>
+       --script_name1 <script_name1> <script2_path> --script_name2 <script_name2>
 
 This should give the output:
 
@@ -111,10 +111,22 @@ if __name__ == '__main__':
     parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
 
     parser.add_argument("-p", "--project", dest="project_name", default=None,
-                        help = "eg: M.Uhlen_13_01. Dont use with -a flagg.")
+            help = "eg: J.Doe_13_01. Dont use with -a flagg.")
 
     parser.add_argument("-a", "--all_projects", action="store_true",
-                      help = "Check all projects on couchDB. Don't use with -p flag.")
+            help = "Check all projects on couchDB. Don't use with -p flag.")
+
+    parser.add_argument("script1", type=file,
+            help = ("First path to executable for script. Preferably located in an "
+                    "independent conda environment."))
+    parser.add_argument("--script1_name",
+            help = ("Name used for script1 in log file and output"))
+
+    parser.add_argument("script2", type=file,
+            help = ("Second path to executable for script. Preferably located in an "
+                    "independent conda environment."))
+    parser.add_argument("--script2_name",
+            help = ("Name used for script2 in log file and output"))
 
     parser.add_argument("-c", "--conf", dest="conf", 
                       default=os.path.join(os.environ['HOME'],
