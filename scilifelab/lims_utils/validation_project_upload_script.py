@@ -17,14 +17,13 @@ Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden.
 
 Testing the script:
 
-Test that the script is caching differences by changing something on the 
-stage server, eg. the value of the sample udf "status_(manual)". for some 
-project J.Doe_00_00. Then run the script with the -p flagg:
+Run the validation script for some representative projects of different characteristics:
 
-validation_project_upload_script.py -p J.Doe_00_00 <script1_path> 
-       --script_name1 <script_name1> <script2_path> --script_name2 <script_name2>
+validation_project_upload_script.py -p J.Doe_00_00 J.Doe_00_01 J.Doe_00_02 
+    --script_name1 <script_name1> --script_name2 <script_name2>
+    --script1 <script_path1> --script2 <script_path2>
 
-This should give the output:
+The output should be similar to:
 
 <script_name1> and <script_name2> are differing for proj J.Doe_00_00: True
 Key status_(manual) differing: <script_name2> gives: Aborted. <script_name1> gives In Progress.
@@ -116,13 +115,13 @@ if __name__ == '__main__':
     parser.add_argument("-a", "--all_projects", action="store_true",
             help = "Check all projects on couchDB. Don't use with -p flag.")
 
-    parser.add_argument("script1", type=file,
+    parser.add_argument("--script1", required=True
             help = ("First path to executable for script. Preferably located in an "
                     "independent conda environment."))
     parser.add_argument("--script1_name",
             help = ("Name used for script1 in log file and output"))
 
-    parser.add_argument("script2", type=file,
+    parser.add_argument("--script2", required=True
             help = ("Second path to executable for script. Preferably located in an "
                     "independent conda environment."))
     parser.add_argument("--script2_name",
