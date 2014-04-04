@@ -37,19 +37,10 @@ are found for any projects. If you get output when grepping for True, there are
 differences. Then read the log file to find what is differing. 
 
 """
-import sys
 import os
-import codecs
 from argparse import ArgumentParser, RawTextHelpFormatter
-from scilifelab.db.statusDB_utils import *
-from helpers import *
-from pprint import pprint
-from genologics.lims import *
-from genologics.config import BASEURI, USERNAME, PASSWORD
-#import objectsDB as DB
-from datetime import date
 import scilifelab.log
-lims = Lims(BASEURI, USERNAME, PASSWORD)
+import subprocess
 
 def comp_obj(obj1, obj2, name1, name2):
     """compares the two dictionaries obj1 and obj2. Using name1 and name2 in log."""
@@ -78,33 +69,22 @@ def recursive_comp(obj1, obj2, name1, name2):
                     LOG.info('Key {0} differing: {1} gives: {2}. {3} gives {4}. '.format(key, name1, val1, name2, val2))
     return diff
 
-def  main(proj_name, all_projects, conf_tools_dev):
-    first_of_july = '2013-06-30'
-    today = date.today()
-    couch_tools = load_couch_server(os.path.join(os.environ['HOME'],'opt/config/post_process.yaml'))
-    couch_tools_dev = load_couch_server(conf_tools_dev)
-    proj_db_tools = couch_tools['projects']
-    proj_db_tools_dev = couch_tools_dev['projects']
+def  main(proj_names, all_projects, script1, script2, name1, name2):
+    diff_file = 'PSUL_diff.tmp'
+    tmp_output_f1 = 'PSUL_{}.tmp'.format(name1)
+    tmp_output_f2 = 'PSUL_{}.tmp'.format(name2)
+
     if all_projects:
-        for key in proj_db_tools:
-            proj_tools = proj_db_tools.get(key)
-            proj_tools_dev = proj_db_tools_dev.get(key)
-            proj_name = proj_tools['project_name']
-            try:
-                if not proj_tools_dev:
-                    LOG.warning("""Found no projects on tools-dev with name %s""" % proj_name)
-                else:
-                    comp_obj(proj_tools, proj_tools_dev)
-            except:
-                LOG.info('Failed comparing stage and prod for proj %s' % proj_name)    
-    elif proj_name is not None:
-        key = find_proj_from_view(proj_db_tools, proj_name)
-        proj_tools = proj_db_tools.get(key)
-        proj_tools_dev = proj_db_tools_dev.get(key)
-        if (not proj_tools) | (not proj_tools_dev):
-            LOG.warning("Found no project named %s" %(proj_name))
-        else:
-            comp_obj(proj_tools, proj_tools_dev)
+        raise NotImplementedError
+    elif proj_names is not None:
+        for proj_name in proj_names:
+            with open(diff_file, 'a') as dfh:
+                subprocess.call([script1, "-p", proj_name,
+                    "--no_upload", "--output_f", tmp_output_f1])
+                subprocess.call([script2, "-p", proj_name,
+                    "--no_upload", "--output_f", tmp_output_f2])
+
+                subprocess.call(['diff', tmp_output_f1, tmp_output_f2], stdout=dfh)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
