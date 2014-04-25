@@ -23,98 +23,71 @@ validation_project_upload_script.py -p J.Doe_00_00 J.Doe_00_01 J.Doe_00_02
     --script_name1 <script_name1> --script_name2 <script_name2>
     --script1 <script_path1> --script2 <script_path2>
 
-The output should be similar to:
-
-<script_name1> and <script_name2> are differing for proj J.Doe_00_00: True
-Key status_(manual) differing: <script_name2> gives: Aborted. <script_name1> gives In Progress.
+The script will create two output files with names 'PSUL_<proj_name>_<script_name>.out 
+and one output file with name 'PSUL_<proj_name>_diff.out' for each project name 
+where a diff was found.
 
 Comparing all projects
 Using the -a flag instead of -p will run the comparison for all projects. 
 This could take quite some time.
-
-If you don't find anything when grepping for True in the log file, no differences 
-are found for any projects. If you get output when grepping for True, there are 
-differences. Then read the log file to find what is differing. 
-
 """
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
-import scilifelab.log
 import subprocess
 
-def comp_obj(obj1, obj2, name1, name2):
-    """compares the two dictionaries obj1 and obj2. Using name1 and name2 in log."""
-    LOG.info('project {0} is being handled'.format(stage['project_name']))
-    diff = recursive_comp(obj1, obj2, name1, name2)
-    LOG.info('{0} and {1} are differing for proj {2}: {3}'.format(name1, name2, stage['project_name'], diff))
-
-def recursive_comp(obj1, obj2, name1, name2):
-    diff = False
-    keys = list(set(obj1.keys() + obj2.keys()))
-    for key in keys:
-        if key not in obj1:
-            LOG.info("Key {0} missing in {1} to db object ".format(key, name2))
-            diff = True
-        elif key not in obj2:
-            LOG.info('Key {0} missing in {1} to db object '.format(key, name2))
-            diff = True
-        else:
-            val1 = obj1[key]
-            val2 = obj2[key]
-            if (val1 != val2):
-                diff = True
-                if (type(val1) is dict) and (type(val2) is dict):
-                    diff = (diff and recursive_comp(val1, val2))
-                else:
-                    LOG.info('Key {0} differing: {1} gives: {2}. {3} gives {4}. '.format(key, name1, val1, name2, val2))
-    return diff
-
 def  main(proj_names, all_projects, script1, script2, name1, name2):
-    diff_file = 'PSUL_diff.tmp'
-    tmp_output_f1 = 'PSUL_{}.tmp'.format(name1)
-    tmp_output_f2 = 'PSUL_{}.tmp'.format(name2)
+    tmp_output_f1 = 'PSUL_{0}.tmp'.format(name1)
+    tmp_output_f2 = 'PSUL_{0}.tmp'.format(name2)
 
     if all_projects:
         raise NotImplementedError
     elif proj_names is not None:
         for proj_name in proj_names:
-            with open(diff_file, 'a') as dfh:
-                subprocess.call([script1, "-p", proj_name,
+            subprocess.call([script1, "-p", proj_name,
                     "--no_upload", "--output_f", tmp_output_f1])
-                subprocess.call([script2, "-p", proj_name,
+            subprocess.call([script2, "-p", proj_name,
                     "--no_upload", "--output_f", tmp_output_f2])
 
-                subprocess.call(['diff', tmp_output_f1, tmp_output_f2], stdout=dfh)
+            output, error = subprocess.Popen(['diff', tmp_output_f1, tmp_output_f2], 
+                        stdout=subprocess.PIPE).communicate()
+            if output:
+                output_f1 = 'PSUL_{0}_{1}.out'.format(proj_name, name1)
+                output_f2 = 'PSUL_{0}_{1}.out'.format(proj_name, name2)
+                    
+                # Save output if diff was found
+                shutil.copyfile(tmp_output_f1, output_f1)
+                shutil.copyfile(tmp_output_f2, output_f2)
+                
+                diff_output = 'PSUL_{0}_diff.out'.format(proj_name)
+                with open(diff_output, 'w') as dfh:
+                    dfh.write(output)
+                
+                diff_projs.append(proj_name)
+        print 'Diff found for {0}.'.format(', '.join(diff_projs))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument("-p", "--project", dest="project_name", default=None,
-            help = "eg: J.Doe_13_01. Dont use with -a flagg.")
+    parser.add_argument("-p", "--projects", nargs='*', 
+            help = ("Projects to use for comparison eg: J.Doe_13_01, J.Doe_13_02. "
+                   "Don't use together with -a flag."))
 
     parser.add_argument("-a", "--all_projects", action="store_true",
             help = "Check all projects on couchDB. Don't use with -p flag.")
 
-    parser.add_argument("--script1", required=True
+    parser.add_argument("--script1", required=True, 
             help = ("First path to executable for script. Preferably located in an "
                     "independent conda environment."))
     parser.add_argument("--script1_name",
             help = ("Name used for script1 in log file and output"))
 
-    parser.add_argument("--script2", required=True
+    parser.add_argument("--script2", required=True,
             help = ("Second path to executable for script. Preferably located in an "
                     "independent conda environment."))
     parser.add_argument("--script2_name",
             help = ("Name used for script2 in log file and output"))
 
-    parser.add_argument("-c", "--conf", dest="conf", 
-                      default=os.path.join(os.environ['HOME'],
-                                           'opt/scilifelab/scilifelab/lims_utils/post_process.yaml'),         
-                      help = ("Config file. "
-                              "Default: ~/opt/scilifelab/scilifelab/lims_utils/post_process.yaml"))
-
     args = parser.parse_args()
 
-    LOG = scilifelab.log.file_logger('LOG', args.conf, 'validate_LIMS_upgrade.log', 'log_dir_tools')
-    main(args.project_name, args.all_projects, args.conf)
+    main(args.projects, args.all_projects, args.script1, args.script2, args.script1_name, args.script2_name)
 
