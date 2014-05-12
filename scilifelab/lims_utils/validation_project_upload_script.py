@@ -42,6 +42,7 @@ def  main(proj_names, all_projects, script1, script2, name1, name2):
     if all_projects:
         raise NotImplementedError
     elif proj_names is not None:
+        diff_projs = []
         for proj_name in proj_names:
             subprocess.call([script1, "-p", proj_name,
                     "--no_upload", "--output_f", tmp_output_f1])
@@ -63,7 +64,8 @@ def  main(proj_names, all_projects, script1, script2, name1, name2):
                     dfh.write(output)
                 
                 diff_projs.append(proj_name)
-        print 'Diff found for {0}.'.format(', '.join(diff_projs))
+        if diff_projs:
+            print 'Diff found for {0}.'.format(', '.join(diff_projs))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
