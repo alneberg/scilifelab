@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 desc = """A script to compare extraction output from the lims, given two different
 executables of project_summary_upload_LIMS.py.
 
@@ -32,8 +33,23 @@ Using the -a flag instead of -p will run the comparison for all projects.
 This could take quite some time.
 """
 import os
+import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 import subprocess
+
+def run_command(script, proj_name, tmp_output_f):
+    call_string = """{0} -p {1} --no_upload --output_f {2}""".format(script,
+                                                               proj_name,
+                                                               tmp_output_f)
+    c = None
+    try:
+        op = subprocess.check_output(
+                     call_string,
+                     shell=True)
+    except subprocess.CalledProcessError as exc:
+        c = exc.returncode
+    
+    return c
 
 def  main(proj_names, all_projects, script1, script2, name1, name2):
     tmp_output_f1 = 'PSUL_{0}.tmp'.format(name1)
@@ -44,28 +60,30 @@ def  main(proj_names, all_projects, script1, script2, name1, name2):
     elif proj_names is not None:
         diff_projs = []
         for proj_name in proj_names:
-            subprocess.call([script1, "-p", proj_name,
-                    "--no_upload", "--output_f", tmp_output_f1])
-            subprocess.call([script2, "-p", proj_name,
-                    "--no_upload", "--output_f", tmp_output_f2])
+            c_1 = run_command(script1, proj_name, tmp_output_f1)
+            c_2 = run_command(script2, proj_name, tmp_output_f2) 
 
-            output, error = subprocess.Popen(['diff', tmp_output_f1, tmp_output_f2], 
-                        stdout=subprocess.PIPE).communicate()
-            if output:
-                output_f1 = 'PSUL_{0}_{1}.out'.format(proj_name, name1)
-                output_f2 = 'PSUL_{0}_{1}.out'.format(proj_name, name2)
+            if c_1 or c_2:
+                sys.stderr.write(("Error occured in at least one of the scripts for "
+                    "project {0}\n").format(proj_name))
+            else:
+                output, error = subprocess.Popen(['diff', tmp_output_f1, tmp_output_f2], 
+                           stdout=subprocess.PIPE).communicate()
+                if output:
+                    output_f1 = 'PSUL_{0}_{1}.out'.format(proj_name, name1)
+                    output_f2 = 'PSUL_{0}_{1}.out'.format(proj_name, name2)
                     
-                # Save output if diff was found
-                shutil.copyfile(tmp_output_f1, output_f1)
-                shutil.copyfile(tmp_output_f2, output_f2)
+                    # Save output if diff was found
+                    shutil.copyfile(tmp_output_f1, output_f1)
+                    shutil.copyfile(tmp_output_f2, output_f2)
                 
-                diff_output = 'PSUL_{0}_diff.out'.format(proj_name)
-                with open(diff_output, 'w') as dfh:
-                    dfh.write(output)
+                    diff_output = 'PSUL_{0}_diff.out'.format(proj_name)
+                    with open(diff_output, 'w') as dfh:
+                        dfh.write(output)
                 
-                diff_projs.append(proj_name)
+                    diff_projs.append(proj_name)
         if diff_projs:
-            print 'Diff found for {0}.'.format(', '.join(diff_projs))
+            print( 'Diff found for {0}.'.format(', '.join(diff_projs)))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description=desc, formatter_class=RawTextHelpFormatter)
