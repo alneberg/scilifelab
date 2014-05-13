@@ -141,7 +141,9 @@ class ProcessInfo():
                 process_info[process.id]['finish_date'] = None
             
             in_arts=[]
-            for in_art, out_art in process.input_output_maps:
+            for in_art_d, out_art_d in process.input_output_maps:
+                in_art = in_art_d['uri']
+                out_art = out_art_d['uri']
                 samples = in_art.samples
                 if in_art.id not in in_arts:
                     in_arts.append(in_art.id)
