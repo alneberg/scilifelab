@@ -115,45 +115,41 @@ class ProcessInfo():
 
     info = {24-8460:{'finish_date':'2013-04-20', 
               'start_date',
-              'run_id':'24-8460',
+              'process_id':'24-8460',
               'samples':{'P424_111':{in_art_id1 : [in_art1, out_art1],
                          in_art_id2: [in_art2, out_art2]},
                      'P424_115': ...},
                        ...},
         '24-8480':...}"""
-    def __init__(self, lims_instance, runs):
+    def __init__(self, lims_instance, processes):
         self.lims = lims_instance
-        self.info = self.get_run_info(runs)
-    def get_run_info(self, runs):
-        run_info = {}
-        for run in runs:
-            run_info[run.id] = {'type' : run.type.name ,
-                                'start_date': run.date_run,
+        self.info = self.get_process_info(processes)
+
+    def get_process_info(self, processes):
+        process_info = {}
+        for process in processes:
+            process_info[process.id] = {'type' : process.type.name ,
+                                'start_date': process.date_run,
                                 'samples' : {}}
-            run_udfs = dict(run.udf.items())
-            try:
-                run_info[run.id]['run_id'] = run_udfs["Run ID"]
-            except:
-                pass
-            try:
-                run_info[run.id]['finish_date'] = run_udfs['Finish Date'].isoformat()
-            except:
-                run_info[run.id]['finish_date'] = None
-                pass
+            process_udfs = dict(process.udf.items())
+            if "Run ID" in process_udfs:
+                process_info[process.id]['process_id'] = process_udfs["Run ID"]
+            
+            if 'Finish Date' in process_udfs:
+                process_info[process.id]['finish_date'] = process_udfs['Finish Date'].isoformat()
+            else:
+                process_info[process.id]['finish_date'] = None
+            
             in_arts=[]
-            for IOM in run.input_output_maps:
-                in_art_id = IOM[0]['limsid']
-                in_art = Artifact(self.lims, id= in_art_id)
-                out_art_id = IOM[1]['limsid']
-                out_art = Artifact(self.lims, id= out_art_id)
+            for in_art, out_art in process.input_output_maps:
                 samples = in_art.samples
-                if in_art_id not in in_arts:
-                    in_arts.append(in_art_id)
+                if in_art.id not in in_arts:
+                    in_arts.append(in_art.id)
                     for samp in samples:
-                        if not samp.name in run_info[run.id]['samples'].keys():
-                            run_info[run.id]['samples'][samp.name] = {}
-                        run_info[run.id]['samples'][samp.name][in_art_id] = [in_art, out_art]
-        return run_info
+                        if not samp.name in process_info[process.id]['samples']:
+                            process_info[process.id]['samples'][samp.name] = {}
+                        process_info[process.id]['samples'][samp.name][in_art.id] = [in_art, out_art]
+        return process_info
 
 def udf_dict(element, dict = {}):
     for key, val in element.udf.items():
@@ -276,9 +272,9 @@ class SampleDB():
         correct preps."""
         sample_runs = {}
         for id, run in SeqRun_info.items():
-            if run['samples'].has_key(self.name) and run.has_key('run_id'):
-                date = run['run_id'].split('_')[0]
-                fcid = run['run_id'].split('_')[3]
+            if run['samples'].has_key(self.name) and run.has_key('process_id'):
+                date = run['process_id'].split('_')[0]
+                fcid = run['process_id'].split('_')[3]
                 run_type = run['type']
                 for id , arts in run['samples'][self.name].items():
                     lane_art = arts[0]
