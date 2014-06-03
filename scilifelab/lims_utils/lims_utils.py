@@ -139,7 +139,7 @@ def make_sample_artifact_maps(sample_name):
             pass
     return outin
 
-def get_analyte_hist_sorted(out_analyte, outin, inart = None):
+def get_analyte_hist_sorted(out_analyte, outin, inart = None, processes_per_artifact = None):
     """Makes a history map of an analyte, using the outin-map 
     of the corresponding sample.
     The outin object is built up from analytes. This means that it will not 
@@ -174,23 +174,24 @@ def get_analyte_hist_sorted(out_analyte, outin, inart = None):
         except:
             pro = None
         history, out_analyte = add_out_art_process_conection_list(inart, 
-                                                    out_analyte, history, pro)
+                                                    out_analyte, history, pro,
+                                                    processes = list(processes_per_artifact[inart]))
         hist_list.append(inart)
     while outin.has_key(out_analyte):
         pro, inart = outin[out_analyte]
         hist_list.append(inart)
         history, out_analyte = add_out_art_process_conection_list(inart, 
-                                                   out_analyte, history, pro.id)
+                                                   out_analyte, history, pro.id,
+                                                   processes = list(processes_per_artifact[inart]))
     return history, hist_list
 
-def add_out_art_process_conection_list(inart, out_analyte, history = {}, pro = None):
+def add_out_art_process_conection_list(inart, out_analyte, history = {}, pro = None, processes = None):
     """This function populates the history dict with process info per artifact.
     Maps an artifact to all the processes where its used as input and adds this 
     info to the history dict. Obseve that the output artifavt for the input 
     atrifact in the historychain is given as input to this funktion. All 
     processes that the input artifakt has been involved in, but that are not 
     part of the historychain get the outart set to None. This is verry important."""
-    processes = lims.get_processes(inputartifactlimsid = inart)
     for process in processes:
         outputs = map(lambda a: a.id, process.all_outputs())
         #if pro and pro == process.id and out_analyte:

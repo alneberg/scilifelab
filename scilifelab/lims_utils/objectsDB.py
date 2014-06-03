@@ -87,6 +87,7 @@ class ProjectDB():
         samples = self.lims.get_samples(projectlimsid = self.lims_project.id)
         self.project['no_of_samples'] = len(samples)
         if len(samples) > 0:
+            processes_per_artifact = self.build_processes_per_artifact()
             self.project['first_initial_qc'] = '3000-10-10'
             for samp in samples: 
                 sampDB = SampleDB(self.lims,
@@ -95,7 +96,8 @@ class ProjectDB():
                                 self.project['application'],
                                 self.preps.info,
                                 self.runs.info,
-                                googledocs_status) #googledocs_status Temporary solution untill 20158 implemented in lims!!
+                                googledocs_status,
+                                processes_per_artifact = processes_per_artifact) #googledocs_status Temporary solution untill 20158 implemented in lims!!
                 self.project['samples'][sampDB.name] = sampDB.obj
 ##### initial qc fixa
                 try:
@@ -105,6 +107,30 @@ class ProjectDB():
                 except:
                     pass
         self.project = delete_Nones(self.project)
+
+    def build_processes_per_artifact(self):
+        """Constructs a dictionary linking each artifact id with its processes.
+
+        Other artifacts can be present as keys. All processes where the project is
+        present should be included. The values of the dictionary is sets, to avoid
+        duplicated projects for a single artifact.
+        """
+        processes = self.lims.get_processes(projectname = self.lims_project.name)
+        processes_per_artifact = {}
+        for process in processes:
+            for inart, outart in process.input_output_maps:
+                # Should this be for all inputs or all outputs or both?
+                if inart['limsid'] in processes_per_artifact:
+                    processes_per_artifact[inart['limsid']].add(process)
+                else:
+                    processes_per_artifact[inart['limsid']] = {process}
+
+                if outart['limsid'] in processes_per_artifact:
+                    processes_per_artifact[outart['limsid']].add(process)
+                else:
+                    processes_per_artifact[outart['limsid']] = {process}
+
+        return processes_per_artifact
 
 #############-------------- ProcessInfo class and help functions --------------#############
 
@@ -183,7 +209,8 @@ class SampleDB():
     https://docs.google.com/a/scilifelab.se/document/d/1OHRsSI9btaBU4Hb1TiqJ5wwdRqUQ4BAyjJR-Nn5qGHg/edit#"""
     def __init__(self,lims_instance , sample_id, project_name, 
                         application = None, prep_info = [], run_info = [],
-                        googledocs_status = {}): 
+                        googledocs_status = {},
+                        processes_per_artifact = None):
       # googledocs_status temporary solution untill 20158 implemented in lims!!
         self.lims = lims_instance
         self.AgrLibQCs = prep_info
@@ -196,6 +223,7 @@ class SampleDB():
                                 SAMP_UDF_EXCEPTIONS)
         self.obj['scilife_name'] = self.name
         self.obj['well_location'] = self.lims_sample.artifact.location[1]
+        self.processes_per_artifact = processes_per_artifact
         preps = self._get_preps_and_libval()
         if preps:
             runs = self.get_sample_run_metrics(run_info, preps)
@@ -276,7 +304,8 @@ class SampleDB():
                     else:
                         lane = lane_art.location[1].split(':')[0]
                     hist_sort, hist_list = get_analyte_hist_sorted(outart.id, 
-                                                        self.outin, lane_art.id)
+                                                        self.outin, lane_art.id,
+                                                        self.processes_per_artifact)
                     steps = ProcessSpec(hist_sort, hist_list, self.application)
                     if self.application in ['Finished library', 'Amplicon']:
                         key = 'Finished'
@@ -330,7 +359,8 @@ class SampleDB():
                 inart, outart = AgrLibQC_info['samples'][self.name].items()[0][1]
                 hist_sort, hist_list = get_analyte_hist_sorted(outart.id,
                                                                self.outin,
-                                                               inart.id)
+                                                               inart.id,
+                                                               self.processes_per_artifact)
                 steps = ProcessSpec(hist_sort, hist_list, self.application)
                 prep = Prep()
                 prep.set_prep_info(steps, self.application)
@@ -374,7 +404,8 @@ class SampleDB():
             latestInitQc = outart.parent_process
             inart = latestInitQc.input_per_sample(self.name)[0].id
             hist_sort, hist_list = get_analyte_hist_sorted(outart.id, 
-                                                        self.outin, inart)
+                                                        self.outin, inart,
+                                                        self.processes_per_artifact)
             if hist_list:
                 iqc = InitialQC(hist_sort, hist_list)
                 initialqc = delete_Nones(iqc.set_initialqc_info())
@@ -388,7 +419,8 @@ class SampleDB():
                 topLevel_AgrLibQC[AgrLibQC_id]=[]
                 inart, outart = AgrLibQC_info['samples'][self.name].items()[0][1]
                 hist_sort, hist_list = get_analyte_hist_sorted(outart.id,
-                                                          self.outin, inart.id)
+                                                          self.outin, inart.id,
+                                                          self.processes_per_artifact)
                 for inart in hist_list:
                     proc_info = hist_sort[inart]
                     proc_info = filter(lambda p : 
