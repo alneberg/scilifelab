@@ -22,7 +22,6 @@ from datetime import date
 config_file = os.path.join(os.environ['HOME'], 'opt/config/post_process.yaml')
 db_conf = cl.load_config(config_file)['statusdb']
 url = db_conf['username']+':'+db_conf['password']+'@'+db_conf['url']+':'+str(db_conf['port'])
-url='production:MmJjYmE2M2JlZD@tools.scilifelab.se:5984'
 samp_db = couchdb.Server("http://" + url)['samples']
 
 #############-------------- ProjectDB class --------------#############
@@ -119,16 +118,16 @@ class ProjectDB():
         processes_per_artifact = {}
         for process in processes:
             for inart, outart in process.input_output_maps:
-                # Should this be for all inputs or all outputs or both?
-                if inart['limsid'] in processes_per_artifact:
-                    processes_per_artifact[inart['limsid']].add(process)
-                else:
-                    processes_per_artifact[inart['limsid']] = {process}
-
-                if outart['limsid'] in processes_per_artifact:
-                    processes_per_artifact[outart['limsid']].add(process)
-                else:
-                    processes_per_artifact[outart['limsid']] = {process}
+                if inart is not None:
+                    if inart['limsid'] in processes_per_artifact:
+                        processes_per_artifact[inart['limsid']].add(process)
+                    else:
+                        processes_per_artifact[inart['limsid']] = {process}
+                if outart is not None:
+                    if outart['limsid'] in processes_per_artifact:
+                        processes_per_artifact[outart['limsid']].add(process)
+                    else:
+                        processes_per_artifact[outart['limsid']] = {process}
 
         return processes_per_artifact
 
