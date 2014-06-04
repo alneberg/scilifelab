@@ -130,7 +130,7 @@ def find_flowcell_from_view(flowcell_db, flowcell_name):
 
 def find_sample_run_id_from_view(samp_db,sample_run):
     view = samp_db.view('names/name_to_id')
-    for doc in view[[sample_run]]:
+    for doc in view[sample_run]:
         if doc.key == sample_run:
             return doc.value
     return None
