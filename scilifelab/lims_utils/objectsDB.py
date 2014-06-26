@@ -156,12 +156,12 @@ class ProcessInfo():
             process_udfs = dict(process.udf.items())
             if "Run ID" in process_udfs:
                 process_info[process.id]['process_id'] = process_udfs["Run ID"]
-            
+
             if 'Finish Date' in process_udfs:
                 process_info[process.id]['finish_date'] = process_udfs['Finish Date'].isoformat()
             else:
                 process_info[process.id]['finish_date'] = None
-            
+
             in_arts=[]
             for in_art_d, out_art_d in process.input_output_maps:
                 in_art = in_art_d['uri']
