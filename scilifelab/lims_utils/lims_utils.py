@@ -48,7 +48,7 @@ POOLING = {'42': "Library Pooling (Illumina SBS) 4.0",
 PREPSTART = {'10' : 'Aliquot Libraries for Hybridization (SS XT)',
     '47' : 'mRNA Purification, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0',
     '33' : 'Fragment DNA (TruSeq DNA) 4.0',
-    '407' : 'Fragment DNA (Thruplex)',
+    '407' : 'Fragment DNA (ThruPlex)',
     '308': 'Library Pooling (TruSeq Small RNA) 1.0',
     '117' : 'Applications Generic Process',
     '405' : 'RiboZero depletion, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0'}
@@ -59,6 +59,11 @@ PREPEND = {'157': 'Applications Finish Prep',
     '406' : 'End repair, size selection, A-tailing and adapter ligation (TruSeq PCR-free DNA) 4.0',
     '311': 'Sample Placement (Size Selection)'}
 LIBVAL = {'62' : 'qPCR QC (Library Validation) 4.0',
+    '64' : 'Quant-iT QC (Library Validation) 4.0',
+    '67' : 'Qubit QC (Library Validation) 4.0',
+    '20' : 'CaliperGX QC (DNA)',
+    '17' : 'Bioanalyzer QC (Library Validation) 4.0'}
+LIBVALFINISHEDLIB = {'62' : 'qPCR QC (Library Validation) 4.0',
     '64' : 'Quant-iT QC (Library Validation) 4.0',
     '67' : 'Qubit QC (Library Validation) 4.0',
     '20' : 'CaliperGX QC (DNA)',
@@ -194,10 +199,6 @@ def add_out_art_process_conection_list(inart, out_analyte, history = {}, pro = N
     part of the historychain get the outart set to None. This is verry important."""
     for process in processes:
         outputs = map(lambda a: a.id, process.all_outputs())
-        #if pro and pro == process.id and out_analyte:
-        #    outart = out_analyte
-        #else:
-        #    outart = None
         outart = out_analyte if out_analyte in outputs else None 
         step_info = {'date' : process.date_run,
                      'id' : process.id,
